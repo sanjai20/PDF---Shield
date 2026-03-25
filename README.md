@@ -37,6 +37,85 @@ Pending external integration:
 - Razorpay plan ids and webhook wiring
 - Final production deployment setup
 
+## Security Protocols and Controls
+
+This project is designed as a security-focused PDF processing platform rather than a generic file utility. The main protection layers already implemented are:
+
+### 1. Authentication and Session Security
+
+- JWT-based authentication for user sessions
+- password hashing with `pbkdf2_sha256`
+- bearer-token protected user, jobs, and admin endpoints
+- admin access enforcement through explicit admin identity checks
+
+### 2. Document Protection Protocols
+
+- PDF encryption using `pikepdf` with modern PDF encryption settings
+- owner/user password protection support
+- fine-grained permission control for print, extract, modify, annotations, forms, and assembly
+- decrypt flow validation that rejects files that are not actually encrypted
+
+### 3. Upload and Input Validation
+
+- strict file-type validation for PDF and ZIP uploads
+- maximum upload size enforcement
+- maximum PDF page-count enforcement
+- ZIP archive entry-count limits
+- ZIP uncompressed-size checks
+- unsafe ZIP path blocking to reduce archive abuse risk
+
+### 4. Threat Detection and Content Scanning
+
+- suspicious upload blocking for risky content patterns before processing
+- PDF scanner checks for:
+  - JavaScript
+  - embedded files
+  - external links
+  - form fields
+  - metadata exposure
+  - digital signature fields
+- suspicious text markers and structured risk reporting
+
+### 5. Privacy and Data Hygiene Controls
+
+- metadata stripping for privacy-sensitive documents
+- smart redaction for common PII patterns such as email, phone, SSN, card-like numbers, URLs, and custom regex
+- steganography support for controlled hidden-message workflows
+
+### 6. Abuse Prevention and SaaS Controls
+
+- request rate limiting
+- auth-specific tighter rate limiting
+- plan-based usage limits
+- suspicious upload rejection
+- audit logging for auth, job lifecycle, admin actions, and billing-related events
+
+### 7. Job and Artifact Security
+
+- async job tracking with authenticated access
+- artifact download restricted to the owning user
+- retention-based cleanup for stored outputs
+- no public direct file exposure outside authenticated endpoints
+
+### 8. Billing and Operational Security Foundation
+
+- billing routes isolated under authenticated APIs
+- webhook verification layer prepared for provider-side signed events
+- admin observability for users, jobs, failures, and plan changes
+
+## Why This Project Stands Out
+
+Compared to a normal PDF utility, PDF Shield combines document protection with platform-level controls:
+
+- secure authentication and role-aware access
+- async processing and downloadable job artifacts
+- admin audit visibility
+- threat-aware upload validation
+- scanner-driven document risk review
+- SaaS usage enforcement and billing foundation
+
+That makes it closer to a secure document platform than a simple converter or compressor tool.
+
 ## Project Structure
 
 ```text
@@ -153,13 +232,13 @@ Important backend settings:
 
 ## Security Notes
 
-The application now stores completed job outputs on disk for later download:
+The application stores completed job outputs on disk for authenticated later download:
 
 - artifacts are stored under the configured job storage directory
 - cleanup runs based on retention settings
-- this is different from an in-memory-only design
+- artifact download is mediated through authenticated job endpoints
 
-Current protections include:
+Current active protections include:
 
 - upload size limits
 - PDF page limits
