@@ -1,0 +1,10 @@
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+pikepdf==9.0.0
+PyMuPDF==1.24.3
+SQLAlchemy==2.0.32
+psycopg2-binary==2.9.9
+passlib==1.7.4
+python-jose[cryptography]==3.3.0
+email-validator==2.2.0

@@ -1,0 +1,81 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pdf-shield-db
+    environment:
+      POSTGRES_DB: pdfshield
+      POSTGRES_USER: pdfshield
+      POSTGRES_PASSWORD: pdfshield
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pdfshield -d pdfshield"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: pdf-shield-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql+psycopg2://pdfshield:pdfshield@db:5432/pdfshield
+      - JWT_SECRET=dev-change-me
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - MAX_UPLOAD_MB=25
+      - MAX_PDF_PAGES=250
+      - MAX_ZIP_ENTRIES=250
+      - MAX_ZIP_UNCOMPRESSED_MB=100
+      - RATE_LIMIT_PER_MINUTE=120
+      - AUTH_RATE_LIMIT_PER_MINUTE=20
+      - JOB_STORAGE_DIR=./data/job_artifacts
+      - JOB_RETENTION_HOURS=24
+      - FREE_DAILY_JOBS=50
+      - PRO_DAILY_JOBS=500
+      - BUSINESS_DAILY_JOBS=5000
+      - FREE_BATCH_ENTRIES=25
+      - PRO_BATCH_ENTRIES=100
+      - BUSINESS_BATCH_ENTRIES=250
+      - ADMIN_EMAILS=admin@example.com
+      - APP_BASE_URL=http://localhost:3000
+      - RAZORPAY_KEY_ID=
+      - RAZORPAY_KEY_SECRET=
+      - RAZORPAY_WEBHOOK_SECRET=
+      - RAZORPAY_PLAN_PRO=
+      - RAZORPAY_PLAN_BUSINESS=
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    image: node:20-alpine
+    container_name: pdf-shield-ui
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_BASE=http://backend:8000
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  backend_data:
